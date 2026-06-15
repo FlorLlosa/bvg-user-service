@@ -3,6 +3,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,7 +12,10 @@ import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async register(createUserDto: CreateUserDto) {
     const { name, lastname, email, password } = createUserDto;
@@ -60,22 +64,29 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      user.password,
-    );
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      roleId: user.roleId,
+    };
+
+    const accessToken = await this.jwtService.signAsync(payload);
+
     return {
       message: 'Login exitoso',
+      access_token: accessToken,
       user: {
         id: user.id,
         name: user.name,
         lastname: user.lastname,
         email: user.email,
+        roleId: user.roleId,
       },
     };
   }
