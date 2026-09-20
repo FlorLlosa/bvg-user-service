@@ -4,6 +4,15 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthGuard } from '@nestjs/passport';
 
+interface AuthenticatedUser {
+  userId: number;
+  email: string;
+  roleId: number | null;
+}
+
+interface AuthenticatedRequest {
+  user: AuthenticatedUser;
+}
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -20,7 +29,7 @@ export class AuthController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('profile')
-  getProfile(@Req() req) {
+  getProfile(@Req() req: AuthenticatedRequest) {
     return req.user;
   }
 }
