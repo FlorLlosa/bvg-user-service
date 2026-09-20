@@ -6,10 +6,15 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { PermissionsService } from './permissions.service';
+
+import { AuthGuard } from '@nestjs/passport';
+import { Permissions } from './decorators/permissions.decorator';
+import { PermissionsGuard } from './guards/permissions.guard';
 
 @Controller('permissions')
 export class PermissionsController {
@@ -19,6 +24,8 @@ export class PermissionsController {
   create(@Body() createPermissionDto: CreatePermissionDto) {
     return this.permissionsService.create(createPermissionDto);
   }
+  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
+  @Permissions('USERS_READ')
   @Get()
   findAll() {
     return this.permissionsService.findAll();
