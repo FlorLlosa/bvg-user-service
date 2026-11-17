@@ -1,33 +1,19 @@
 import {
-  ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateRoleDto } from './dto/create-role.dto';
 
 @Injectable()
 export class RolesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createRoleDto: CreateRoleDto) {
-    const { name, description } = createRoleDto;
-
-    const existingRole = await this.prisma.role.findUnique({
-      where: { name },
-    });
-
-    if (existingRole) {
-      throw new ConflictException('El rol ya existe');
-    }
-
-    return this.prisma.role.create({
-      data: {
-        name,
-        description,
-      },
-    });
+  create(): never {
+    throw new ForbiddenException(
+      'La creación de nuevos roles está deshabilitada',
+    );
   }
 
   async findAll() {
@@ -53,10 +39,19 @@ export class RolesService {
   async assignRole(userId: number, roleId: number) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
+      include: {
+        role: true,
+      },
     });
 
     if (!user) {
       throw new NotFoundException(`No existe un usuario con el ID ${userId}`);
+    }
+
+    if (user.role?.name === 'ADMIN') {
+      throw new ForbiddenException(
+        'No está permitido modificar el rol de un Gerente General',
+      );
     }
 
     const role = await this.prisma.role.findUnique({
@@ -67,10 +62,16 @@ export class RolesService {
       throw new NotFoundException(`No existe un rol con el ID ${roleId}`);
     }
 
+    if (!['EMPLEADO', 'ENCARGADO'].includes(role.name)) {
+      throw new ForbiddenException(
+        'Solo se pueden asignar los roles EMPLEADO o ENCARGADO',
+      );
+    }
+
     return this.prisma.user.update({
       where: { id: userId },
       data: {
-        roleId,
+        roleId: role.id,
       },
       select: {
         id: true,

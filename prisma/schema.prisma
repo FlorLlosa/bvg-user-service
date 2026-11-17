@@ -19,11 +19,15 @@ model User {
   email     String   @unique
   password  String
   isActive  Boolean  @default(true)
+  mustChangePassword Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   roleId Int?
   role   Role? @relation(fields: [roleId], references: [id])
+
+  // ID del sector administrado por bvg-task-service
+  sectorId Int?
 }
 
 model Role {
